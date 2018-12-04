@@ -1,10 +1,13 @@
 # terraform-azurerm-vm-winrmenabled
 Terraform module to deploy a Windows VM on Azure. Will also enable WinRM with a Let's Encrypt certificate
 
-- Create 
-- Specify subnet to use for the loadbalancer: `frontend_subnet_id`
-- For `private` loadbalancer, specify the private ip address using`frontend_private_ip_address`
-- Specify the type of the private ip address with `frontend_private_ip_address_allocation`, Dynamic or Static , default is `Dynamic`
+- Create Windows VM with delegation rights to maintain ACME DNS TXT records
+- if public IP: create A-Record
+- in oobeSystem:
+  - set FQDN
+  - configure scheduled task to maintain Let's Encrypt certificate using Posh-ACME module
+  - configure WinRM with certificate
+  - configure certificate to be used with RDP
 
 ## Usage
 
