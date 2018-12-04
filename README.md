@@ -8,6 +8,9 @@ Terraform module to deploy a Windows VM on Azure. Will also enable WinRM with a 
   - configure scheduled task to maintain Let's Encrypt certificate using Posh-ACME module
   - configure WinRM with certificate
   - configure certificate to be used with RDP
+  
+## Caution
+Consider this experimental. Also; the LE Certificates will currently require reboots
 
 ## Usage
 
@@ -15,8 +18,7 @@ Windows 10 VM with public IP set
 
 ```hcl
 module "azurerm_virtual_machine_winrmenabled" {
-  source = "../_modules/azurerm_virtual_machine_winrmenabled"
-  #source = "github.com/hashicorp/example"
+  source = "github.com/rafabu/terraform-azurerm-vm-winrmenabled"
 
   name = "${local.vm-name}"
   dns_suffix = "${local.dns-zone}"
