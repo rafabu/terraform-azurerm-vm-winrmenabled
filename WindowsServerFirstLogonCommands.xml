@@ -1,0 +1,20 @@
+<FirstLogonCommands>
+    <SynchronousCommand>
+        <CommandLine>%windir%\system32\cmd /c "copy C:\AzureData\CustomData.bin C:\AzureData\Enable-WinRMDuringDeploy.ps1"</CommandLine
+        ><Description>CopyScript</Description>
+        <Order>11</Order>
+        <RequiresUserInput>false</RequiresUserInput>
+    </SynchronousCommand>
+    <SynchronousCommand>
+        <CommandLine>powershell.exe -sta -ExecutionPolicy Unrestricted -file C:\AzureData\Enable-WinRMDuringDeploy.ps1</CommandLine>
+        ><Description>RunScript</Description>
+        <Order>12</Order>
+        <RequiresUserInput>false</RequiresUserInput>
+    </SynchronousCommand>
+     <SynchronousCommand>
+        <CommandLine>%windir%\system32\shutdown.exe /r /t 30 /c "reached end of FirstLogonCommands triggered by Terraform"</CommandLine
+        ><Description>InitiateRestart</Description>
+        <Order>13</Order>
+        <RequiresUserInput>false</RequiresUserInput>
+    </SynchronousCommand>
+</FirstLogonCommands>
