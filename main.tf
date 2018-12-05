@@ -91,7 +91,7 @@ locals {
 }
 #create a-record only if enable_public_ip and dns parameters present
 resource "azurerm_dns_a_record" "a-record" {
-  count = "${var.enable_public_ip == 1 && var.dns_zone_name != "" && var.dns_resource_group_name != "" && local.public_ip_address_value != "" ? 1 : 0}"
+  count = "${var.enable_public_ip == 1 && var.dns_zone_name != "" && var.dns_resource_group_name != "" ? 1 : 0}"
   name                = "${var.name}"
   zone_name           = "${var.dns_zone_name}"
   resource_group_name = "${var.dns_resource_group_name}"
