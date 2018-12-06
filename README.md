@@ -47,6 +47,7 @@ module "azurerm_virtual_machine_winrmenabled" {
   admin_password = "${var.rds-admin-password}"
   #set Let's Encrypt server to STAGE if we aren't in PROD
   acme_server = "${var.env-type == "prod" ? "LE_PROD" : "LE_STAGE"}"
+  winrm_remote_address = "${var.env-address-space}"
   winrm_https_port = "5986"
 }
 ```
