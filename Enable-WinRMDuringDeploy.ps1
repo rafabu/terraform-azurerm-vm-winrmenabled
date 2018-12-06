@@ -273,10 +273,10 @@ if (-not($nugetProvider)) {
         #winrm over https (for ansible et al)
         $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
         if ($netFWRulehttps) {
-            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
             Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
         } else {
-            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP" -DisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP" -DisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
             Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
         }
 
