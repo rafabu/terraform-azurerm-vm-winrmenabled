@@ -7,13 +7,24 @@
 #    acmeServer (LE_PROD or LE_STAGE)
 #    dnsSuffix
 #    mgtDNSSuffix
-#    winRmPort
+#    winRmRemoteAddress
+#    winRmPortHTTP
+#    winRmPortHTTPS
 
 
 ##subscription id is as follows: /subscriptions/00000000-0000-0000-0000-000000000000
 $azSubscriptionId = @($azSubscriptionId.split("/"))[@($azSubscriptionId.split("/")).count - 1]
 if ($mgtDNSSuffix -eq $null -or $mgtDNSSuffix.length -eq 0) {
     $mgtDNSSuffix = $dnsSuffix
+}
+if (($winRmRemoteAddress -eq $null) -or ($winRmRemoteAddress.length -eq 0)) {
+    $winRmRemoteAddress = "LocalSubnet"
+}
+if (($winRmPortHTTP -eq $null) -or ($winRmPortHTTP -lt 1)) {
+    $winRmPortHTTP = 5985
+}
+if (($winRmPortHTTPS -eq $null) -or ($winRmPortHTTPS -lt 1)) {
+    $winRmPortHTTPS = 5986
 }
 $certDomain = $env:computerName.ToLower() + "." + $mgtDNSSuffix
 
@@ -250,13 +261,23 @@ if (-not($nugetProvider)) {
             Set-Item -Path "WSMan:\localhost\Service\Auth\Basic" -Value $true
             Write-Host (get-date -DisplayHint Time) Set Basic Auth in WinRM
         }
-        $netFWRule = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
-        if ($netFWRule) {
-            Set-NetFirewallRule -InputObject $netFWRule -NewDisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPort]" -Profile Domain, Private -Direction Inbound -LocalPort $WinRmPort -Protocol TCP -Action Allow
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPort - updated rule WINRM-HTTPS-In-TCP
+        #winrm over http (for windows admin center)
+        $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
+        if ($netFWRulehttp) {
+            Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
         } else {
-            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP" -DisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPort]" -Profile Domain, Private -Direction Inbound -LocalPort $WinRmPort -Protocol TCP -Action Allow
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPort - added rule WINRM-HTTPS-In-TCP
+            New-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
+        }
+        #winrm over https (for ansible et al)
+        $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
+        if ($netFWRulehttps) {
+            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
+        } else {
+            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP" -DisplayName "Windows Remote Management (HTTPS-In)" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
         }
 
         #register LE part as scheduled task (to run in SYSTEM context)

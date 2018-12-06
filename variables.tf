@@ -83,3 +83,6 @@ variable "acme_server" {
 variable "winrm_https_port" {
     default = "5986"
 }
+variable "winrm_remote_address" {
+    default = "LocalSubnet"
+}
