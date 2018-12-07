@@ -14,16 +14,16 @@
 
 ##subscription id is as follows: /subscriptions/00000000-0000-0000-0000-000000000000
 $azSubscriptionId = @($azSubscriptionId.split("/"))[@($azSubscriptionId.split("/")).count - 1]
-if ($mgtDNSSuffix -eq $null -or $mgtDNSSuffix.length -eq 0) {
+if ($null -eq $mgtDNSSuffix -or $mgtDNSSuffix.length -eq 0) {
     $mgtDNSSuffix = $dnsSuffix
 }
-if (($winRmRemoteAddress -eq $null) -or ($winRmRemoteAddress.length -eq 0)) {
+if (($null -eq $winRmRemoteAddress) -or ($winRmRemoteAddress.length -eq 0)) {
     $winRmRemoteAddress = "LocalSubnet"
 }
-if (($winRmPortHTTP -eq $null) -or ($winRmPortHTTP -lt 1)) {
+if (($null -eq $winRmPortHTTP) -or ($winRmPortHTTP -lt 1)) {
     $winRmPortHTTP = 5985
 }
-if (($winRmPortHTTPS -eq $null) -or ($winRmPortHTTPS -lt 1)) {
+if (($null -eq $winRmPortHTTPS) -or ($winRmPortHTTPS -lt 1)) {
     $winRmPortHTTPS = 5986
 }
 $certDomain = $env:computerName.ToLower() + "." + $mgtDNSSuffix
@@ -114,19 +114,22 @@ try {
 }
 catch {
     $paCertificates = @()
+    Write-Host No existing LE certificates found
+
 }
 
 if ($paCertificates.count -eq 0) {
     Write-Host Request new Certificate
-    $paCertificate = New-PACertificate -Domain $domain -AcceptTOS -DnsPlugin Azure -PluginArgs $azParams -FriendlyName "WinRM Certificate (by Let's Encrypt)" -Install -Verbose
+    $paCertificates = @(New-PACertificate -Domain $domain -AcceptTOS -DnsPlugin Azure -PluginArgs $azParams -FriendlyName "WinRM Certificate (by Let's Encrypt)" -Install -Verbose)
 }
 
 if ($paCertificates.Count -eq 1) {
     #if newew by isn't reached yet, this will output a warning and not do anything
     #see if the certificate is actually still present
-    $installedPACertificates = @(Get-ChildItem Cert:\LocalMachine\My | where {$_.Subject -eq "CN=$domain" -and $_.Issuer -imatch $leIssuer -and $_.Thumbprint -eq $paCertificate.Thumbprint})
+    $installedPACertificates = @(Get-ChildItem Cert:\LocalMachine\My | where {$_.Subject -eq "CN=$domain" -and $_.Issuer -imatch $leIssuer -and $_.Thumbprint -eq $paCertificates[0].Thumbprint})
     if ($installedPACertificates.Count -eq 0) {
         #force renewal to update the certificate
+        Write-Host force renewal of certificate as it was not found in cert store
         Submit-Renewal -MainDomain $domain -Force -WarningAction Continue
     }
     else {
@@ -138,14 +141,14 @@ if ($paCertificates.Count -eq 1) {
             Write-Error "failed to renew certificate for $domain"
         }
     }
-    $paCertificate = Get-PACertificate -MainDomain $domain
+    $paCertificates = @(Get-PACertificate -MainDomain $domain -ErrorAction Ignore)
 }
 if ($paCertificates.Count -gt 1) {
     Write-Host delete outdated certificates
 }
 
 
-if ($paCertificate.thumbprint.length -gt 0) {
+if ($paCertificates[0].thumbprint.length -gt 0) {
     #check if WSMan is using correct certificate
     try {
         $wsmanInstance = @(Get-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Address = "*"; Transport = "HTTPS"} -ErrorAction SilentlyContinue)
@@ -154,16 +157,16 @@ if ($paCertificate.thumbprint.length -gt 0) {
         $wsmanInstance = @()
     }
     if ($wsmanInstance.Count -eq 0) {
-        $winrmValueSet = @{Hostname = $domain; CertificateThumbprint = $paCertificate.Thumbprint}
+        $winrmValueSet = @{Hostname = $domain; CertificateThumbprint = $paCertificates[0].Thumbprint}
         New-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Address = "*"; Transport = "HTTPS"} -ValueSet $winrmValueSet
-        Write-Host created new winrm/config/listener certificate to thumbrpint $paCertificate.Thumbprint
+        Write-Host created new winrm/config/listener certificate to thumbrpint $paCertificates[0].Thumbprint
     }
     else {
-        if ($wsmanInstance.CertificateThumbprint -ne $paCertificate.Thumbprint) {
+        if ($wsmanInstance.CertificateThumbprint -ne $paCertificates[0].Thumbprint) {
             Remove-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Address = "*"; Transport = "HTTPS"}
-            $winrmValueSet = @{Hostname = $domain; CertificateThumbprint = $paCertificate.Thumbprint}
+            $winrmValueSet = @{Hostname = $domain; CertificateThumbprint = $paCertificates[0].Thumbprint}
             New-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Address = "*"; Transport = "HTTPS"} -ValueSet $winrmValueSet
-            Write-Host updated winrm/config/listener certificate to thumbrpint $paCertificate.Thumbprint
+            Write-Host updated winrm/config/listener certificate to thumbrpint $paCertificates[0].Thumbprint
         }
         else {
             Write-Host WSMan certificate $wsmanInstance.CertificateThumbprint is current.
@@ -171,7 +174,7 @@ if ($paCertificate.thumbprint.length -gt 0) {
     }
 
     #clean up superseded LE certificates from local store
-    $supersededPACerts = @(Get-ChildItem Cert:\LocalMachine\My | where {$_.Subject -eq "CN=$domain" -and $_.Issuer -imatch $leIssuer -and $_.Thumbprint -ne $paCertificate.Thumbprint})
+    $supersededPACerts = @(Get-ChildItem Cert:\LocalMachine\My | where {$_.Subject -eq "CN=$domain" -and $_.Issuer -imatch $leIssuer -and $_.Thumbprint -ne $paCertificates[0].Thumbprint})
     foreach ($supersededPACert in $supersededPACerts) {
         $supersededPACert | Remove-Item -Force
         Write-Host deleted superseded cert $supersededPACert.Thumbprint
@@ -179,7 +182,7 @@ if ($paCertificate.thumbprint.length -gt 0) {
 
     #make sure the chain is trusted (only required on LE_STAGE
     if ($acmeServer -eq "LE_STAGE") {
-        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($paCertificate.FullChainFile)
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($paCertificates[0].FullChainFile)
         if (-not(Test-Certificate -Cert $cert -DNSName $domain -Verbose -Policy SSL -ErrorAction SilentlyContinue)) {
             if (Test-Certificate -Cert $cert -DNSName $domain -Verbose -Policy SSL -AllowUntrustedRoot) {
                 $chain = (New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Chain)
@@ -200,7 +203,8 @@ if ($paCertificate.thumbprint.length -gt 0) {
     # certificate can also be used for RDP
     #
     $tsWMIPath = (Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\cimv2\terminalservices -Filter "TerminalName='RDP-tcp'").__path
-    Set-WmiInstance -Path $tsWMIPath -argument @{SSLCertificateSHA1Hash="$($paCertificate.thumbprint)"}
+    Set-WmiInstance -Path $tsWMIPath -argument @{SSLCertificateSHA1Hash="$($paCertificates[0].thumbprint)"}
+    Write-Host set RDP certificate to $paCertificates[0].thumbprint
 }
 
 Stop-Transcript
@@ -270,7 +274,7 @@ if (-not($nugetProvider)) {
             New-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
             Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
         }
-        if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP").Enabled -eq "false")
+        if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP").Enabled -eq "false") {
             Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
             Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP
         }
