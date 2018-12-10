@@ -266,34 +266,31 @@ if (-not($nugetProvider)) {
             Write-Host (get-date -DisplayHint Time) Set Basic Auth in WinRM
         }
         #winrm over http (for windows admin center / Azure Automation)
-        $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
+        #dont' touch existing rule or Set-WSManQuickConfig in PoSh Extension will fail
+        $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
         if ($netFWRulehttp) {
-            #dont' touch existing rule or Set-WSManQuickConfig in PoSh Extension will fail
-            #Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
-            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
+            Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
         } else {
-            #New-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
-            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
+            New-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
         }
-        if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP").Enabled -eq "false") {
-            #Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
-            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP
-            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
+        if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET").Enabled -eq "false") {
+            Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP-AZUREVNET
         }
         #winrm over https (for ansible et al)
-        $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
+        $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
         if ($netFWRulehttps) {
-            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
+            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
         } else {
-            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP" -DisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP for remote address $winRmRemoteAddress
+            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
         }
-        if ((Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP").Enabled -eq "false") {
-            Enable-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - enabled rule WINRM-HTTPS-In-TCP
+        if ((Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET").Enabled -eq "false") {
+            Enable-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
+            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - enabled rule WINRM-HTTPS-In-TCP-AZUREVNET
         }
 
         #register LE part as scheduled task (to run in SYSTEM context)
@@ -304,7 +301,7 @@ if (-not($nugetProvider)) {
         Write-Host (get-date -DisplayHint Time) start scheduled task \AzureData\Manage-PACertificate.ps1
         Start-ScheduledTask -TaskPath "\AzureData\" -TaskName "Manage-PACertificate.ps1"
         Write-Host (get-date -DisplayHint Time) sleeping here to give task time to finish
-        Start-Sleep -Seconds 180
+        Start-Sleep -Seconds 130
 
         #Unregister-ScheduledTask -TaskPath "\AzureData\" -TaskName  "Manage-PACertificate.ps1" -Force
 
