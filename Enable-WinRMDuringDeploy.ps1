@@ -265,18 +265,22 @@ if (-not($nugetProvider)) {
             Set-Item -Path "WSMan:\localhost\Service\Auth\Basic" -Value $true
             Write-Host (get-date -DisplayHint Time) Set Basic Auth in WinRM
         }
-        #winrm over http (for windows admin center)
+        #winrm over http (for windows admin center / Azure Automation)
         $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
         if ($netFWRulehttp) {
+            #dont' touch existing rule or Set-WSManQuickConfig in PoSh Extension will fail
             #Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
+            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
+            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
         } else {
             #New-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Any -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
+            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP for remote address $winRmRemoteAddress
+            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
         }
         if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP").Enabled -eq "false") {
             #Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP
+            #Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP
+            Write-Host  (get-date -DisplayHint Time) not doing anything here to not offend Set-WSManQuickConfig
         }
         #winrm over https (for ansible et al)
         $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP"
