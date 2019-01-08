@@ -150,10 +150,10 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   settings = <<SETTINGS_JSON
         {
             "configurationArguments": {
-                "EncryptionOperation" : "EnableEncryption"
+                "EncryptionOperation" : "EnableEncryption",
                 "KeyEncryptionAlgorithm": "",
                 "VolumeType": "",
-                "AADClientID":"",
+                "AADClientID": "",
                 "AADClientCertThumbprint": "",
                 "SequenceVersion": ""
 
