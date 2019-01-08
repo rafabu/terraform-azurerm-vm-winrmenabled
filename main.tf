@@ -141,14 +141,4 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
               "AADClientCertThumbprint":""
          }
   SETTINGS_JSON
-  # protected_settings = <<PROTECTED_SETTINGS_JSON
-  #   {
-  #       "configurationArguments": {
-  #               "KeyVaultURL": "${var.keyvault_URL}",
-  #               "KeyVaultResourceId": "${var.keyvault_resource_id}",
-  #               "KeyEncryptionKeyURL": "",
-  #               "KekVaultResourceId": ""
-  #       }
-  #   }
-  # PROTECTED_SETTINGS_JSON
 }
