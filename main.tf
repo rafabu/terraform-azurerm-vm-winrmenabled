@@ -113,3 +113,38 @@ resource "azurerm_role_assignment" "role_assignment" {
     ignore_changes = ["name"]
   }
 }
+
+resource "azurerm_virtual_machine_extension" "ade_extension" {
+  count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  name                 = "AzureDiskEncryption"
+  location             = "${var.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_machine_name = "${azurerm_virtual_machine.virtual-machine.name}"
+  publisher            = "Microsoft.Azure.Security"
+  type                 = "AzureDiskEncryption"
+  type_handler_version = "2.2"
+  auto_upgrade_minor_version = true
+  depends_on = ["azurerm_virtual_machine.virtual-machine"]
+  #use default extension properties derived from:
+  #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
+  settings = <<SETTINGS_JSON
+        {
+            "configurationArguments": {
+                "encryptionOperation" : "EnableEncryption",
+                "keyEncryptionAlgorithm": "RSA-OAEP",
+                "volumeType": "All"
+
+            }
+        }
+  SETTINGS_JSON
+  protected_settings = <<PROTECTED_SETTINGS_JSON
+    {
+        "configurationArguments": {
+                "keyVaultURL": "${var.keyvault_URL}",
+                "keyVaultResourceId": "${var.keyvault_resource_id}",
+                "keyEncryptionKeyURL": "",
+                "kekVaultResourceId": ""
+        }
+    }
+  PROTECTED_SETTINGS_JSON
+}

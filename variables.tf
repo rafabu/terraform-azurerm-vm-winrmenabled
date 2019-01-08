@@ -87,5 +87,14 @@ variable "winrm_remote_address" {
     default = "LocalSubnet"
 }
 variable "bdehdcfg_uri" {
-    default = "https://github.com/rafabu/terraform-azurerm-vm-winrmenabled/raw/master/dependencies/bdehdcfg-windows-core-10.0.17763.1.zip"
+    default = ""
+}
+
+variable "keyvault_URL" {
+    default = ""
+    description = "if specified together with keyvault_resource_id, Azure Disk Encryption is enabled on the VM"
+}
+variable "keyvault_resource_id" {
+    default = ""
+    description = "if specified together with keyvault_URL, Azure Disk Encryption is enabled on the VM"
 }
