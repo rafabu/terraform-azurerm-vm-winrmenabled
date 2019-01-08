@@ -86,3 +86,6 @@ variable "winrm_https_port" {
 variable "winrm_remote_address" {
     default = "LocalSubnet"
 }
+variable "bdehdcfg_uri" {
+    default = "https://github.com/rafabu/terraform-azurerm-vm-winrmenabled/raw/master/dependencies/bdehdcfg-windows-core-10.0.17763.1.zip"
+}
