@@ -118,7 +118,7 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  resource_group_name  = "${var.resource_group_name}"
   virtual_machine_name = "${azurerm_virtual_machine.virtual-machine.name}"
   publisher            = "Microsoft.Azure.Security"
   type                 = "AzureDiskEncryption"
