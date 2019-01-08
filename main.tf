@@ -127,12 +127,35 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
   #use default extension properties derived from:
   #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
+  # settings = <<SETTINGS_JSON
+  #       {
+  #           "configurationArguments": {
+  #               "EncryptionOperation" : "EnableEncryption"
+  #               "KeyEncryptionAlgorithm": "RSA-OAEP",
+  #               "VolumeType": "All"
+
+  #           }
+  #       }
+  # SETTINGS_JSON
+  # protected_settings = <<PROTECTED_SETTINGS_JSON
+  #   {
+  #       "configurationArguments": {
+  #               "KeyVaultURL": "${var.keyvault_URL}",
+  #               "KeyVaultResourceId": "${var.keyvault_resource_id}",
+  #               "KeyEncryptionKeyURL": "",
+  #               "KekVaultResourceId": ""
+  #       }
+  #   }
+  # PROTECTED_SETTINGS_JSON
   settings = <<SETTINGS_JSON
         {
             "configurationArguments": {
-                "encryptionOperation" : "EnableEncryption",
-                "keyEncryptionAlgorithm": "RSA-OAEP",
-                "volumeType": "All"
+                "EncryptionOperation" : "EnableEncryption"
+                "KeyEncryptionAlgorithm": "",
+                "VolumeType": "",
+                "AADClientID":"",
+                "AADClientCertThumbprint": "",
+                "SequenceVersion": ""
 
             }
         }
@@ -140,10 +163,10 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   protected_settings = <<PROTECTED_SETTINGS_JSON
     {
         "configurationArguments": {
-                "keyVaultURL": "${var.keyvault_URL}",
-                "keyVaultResourceId": "${var.keyvault_resource_id}",
-                "keyEncryptionKeyURL": "",
-                "kekVaultResourceId": ""
+                "KeyVaultURL": "${var.keyvault_URL}",
+                "KeyVaultResourceId": "${var.keyvault_resource_id}",
+                "KeyEncryptionKeyURL": "",
+                "KekVaultResourceId": ""
         }
     }
   PROTECTED_SETTINGS_JSON
