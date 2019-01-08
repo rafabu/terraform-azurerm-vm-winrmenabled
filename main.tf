@@ -149,25 +149,26 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   # PROTECTED_SETTINGS_JSON
   settings = <<SETTINGS_JSON
         {
-            "configurationArguments": {
-                "EncryptionOperation" : "EnableEncryption",
-                "KeyEncryptionAlgorithm": "",
-                "VolumeType": "",
-                "AADClientID": "",
-                "AADClientCertThumbprint": "",
-                "SequenceVersion": ""
-
-            }
-        }
+              "KeyEncryptionKeyURL":"",
+              "KeyVaultURL":"https://rabuzu-lab01-keyvault.vault.azure.net/",
+              "VolumeType":"",
+              "KeyVaultResourceId":"/subscriptions/578e30a6-b534-40db-b511-9e5845df59a0/resourceGroups/rabuzu-lab01-akv-rg/providers/Microsoft.KeyVault/vaults/rabuzu-lab01-keyvault",
+              "KeyEncryptionAlgorithm":"",
+              "SequenceVersion":"",
+              "KekVaultResourceId":"",
+              "AADClientID":"",
+              "EncryptionOperation":"EnableEncryption",
+              "AADClientCertThumbprint":""
+         }
   SETTINGS_JSON
-  protected_settings = <<PROTECTED_SETTINGS_JSON
-    {
-        "configurationArguments": {
-                "KeyVaultURL": "${var.keyvault_URL}",
-                "KeyVaultResourceId": "${var.keyvault_resource_id}",
-                "KeyEncryptionKeyURL": "",
-                "KekVaultResourceId": ""
-        }
-    }
-  PROTECTED_SETTINGS_JSON
+  # protected_settings = <<PROTECTED_SETTINGS_JSON
+  #   {
+  #       "configurationArguments": {
+  #               "KeyVaultURL": "${var.keyvault_URL}",
+  #               "KeyVaultResourceId": "${var.keyvault_resource_id}",
+  #               "KeyEncryptionKeyURL": "",
+  #               "KekVaultResourceId": ""
+  #       }
+  #   }
+  # PROTECTED_SETTINGS_JSON
 }
