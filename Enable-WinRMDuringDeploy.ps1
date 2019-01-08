@@ -10,6 +10,7 @@
 #    winRmRemoteAddress
 #    winRmPortHTTP
 #    winRmPortHTTPS
+#    bdehdcfgURI
 
 
 ##subscription id is as follows: /subscriptions/00000000-0000-0000-0000-000000000000
@@ -221,7 +222,7 @@ Write-Host (get-date -DisplayHint Time) Starting in context UserName: $userName 
 
 #on server CORE, copy bdehdcdg to WINDOWS to support Azure Disk Encryption
 #   https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption-tsg#troubleshooting-windows-server-2016-server-core
-if (((Get-WindowsEdition -Online).Edition -match "^Server.+Cor$") -and ($bdehdcfgURI.legnth -gt 0)) {
+if (((Get-WindowsEdition -Online).Edition -match "^Server.+Cor$") -and ($bdehdcfgURI.length -gt 0)) {
     $bdehdcfgURI -imatch ".+/(.+)$" | Out-Null
     $bdehdcfgZIP = $env:TEMP + "\" + $matches[1]
     Write-Host (get-date -DisplayHint Time) adding bdehdcfg to Windows Server Core to support Azure Disk Encryption
