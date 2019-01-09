@@ -1,4 +1,4 @@
-Start-Transcript -Path ".\Add-BdeHdCfg.Log"
+Start-Transcript -Path '.\Add-BdeHdCfg.Log'
 if (((Get-WindowsEdition -Online).Edition -match '^Server.+Cor$') -and ($bdehdcfgURI.length -gt 0)) {
     #see if bdehdcfg is already present
     if (-not (Test-Path ($env:windir + '\system32\BdeHdCfg.exe')) -or -not (Test-Path ($env:windir + '\system32\BdeHdCfgLib.dll'))) {

@@ -135,9 +135,16 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
     "timestamp": ""
   }
   SETTINGS_JSON
-   protected_settings = <<PROTECTED_SETTINGS_JSON
+  #  protected_settings = <<PROTECTED_SETTINGS_JSON
+  #   {
+  #     "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}') ${file("${path.module}/Add-BdeHdCfg.ps1")}",
+  #     "storageAccountName": "",
+  #     "storageAccountKey": ""
+  #   }
+  # PROTECTED_SETTINGS_JSON
+  protected_settings = <<PROTECTED_SETTINGS_JSON
     {
-      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}') ${file('${path.module}/Add-BdeHdCfg.ps1')}",
+      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\Add-BdeHdCfg.Log'; Stop-Transcript;",
       "storageAccountName": "",
       "storageAccountKey": ""
     }
