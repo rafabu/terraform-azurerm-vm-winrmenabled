@@ -148,7 +148,7 @@ protected_settings = <<PROTECTED_SETTINGS_JSON
 }
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" {
   #depends on BdeHdCfg_script_extension_on_core
-  count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
