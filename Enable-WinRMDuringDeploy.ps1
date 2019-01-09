@@ -220,24 +220,27 @@ $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 Write-Host (get-date -DisplayHint Time) Starting in context UserName: $userName / IsAdmin: $isAdmin
 
 
-#on server CORE, copy bdehdcdg to WINDOWS to support Azure Disk Encryption
-#   https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption-tsg#troubleshooting-windows-server-2016-server-core
-if (((Get-WindowsEdition -Online).Edition -match "^Server.+Cor$") -and ($bdehdcfgURI.length -gt 0)) {
-    $bdehdcfgURI -imatch ".+/(.+)$" | Out-Null
-    $bdehdcfgZIP = $env:TEMP + "\" + $matches[1]
-    Write-Host (get-date -DisplayHint Time) adding bdehdcfg to Windows Server Core to support Azure Disk Encryption
-    Write-Host (get-date -DisplayHint Time) download bdehdcfg from $bdehdcfgURI to $bdehdcfgZIP and expand to $env:windir
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest $bdehdcfgURI -Out $bdehdcfgZIP
-    try {
-        Expand-Archive -LiteralPath $bdehdcfgZIP -DestinationPath $env:windir -ErrorAction SilentlyContinue
-    }
-    catch {
-        Write-Host (get-date -DisplayHint Time) failed to expand $bdehdcfgZIP to $env:windir / most likely the files already exist
-    }
-    # Removing temp files
-    Remove-Item $bdehdcfgZIP -Force
-}
+# #on server CORE, copy bdehdcdg to WINDOWS to support Azure Disk Encryption
+# #   https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption-tsg#troubleshooting-windows-server-2016-server-core
+# if (((Get-WindowsEdition -Online).Edition -match "^Server.+Cor$") -and ($bdehdcfgURI.length -gt 0)) {
+#     #see if bdehdcfg is already present
+#     if (-not (Test-Path ($env:windir + "\system32\BdeHdCfg.exe")) -or -not (Test-Path ($env:windir + "\system32\BdeHdCfgLib.dll"))) {
+#         $bdehdcfgURI -imatch ".+/(.+)$" | Out-Null
+#         $bdehdcfgZIP = $env:TEMP + "\" + $matches[1]
+#         Write-Host (get-date -DisplayHint Time) adding bdehdcfg to Windows Server Core to support Azure Disk Encryption
+#         Write-Host (get-date -DisplayHint Time) download bdehdcfg from $bdehdcfgURI to $bdehdcfgZIP and expand to $env:windir
+#         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+#         Invoke-WebRequest $bdehdcfgURI -Out $bdehdcfgZIP
+#         try {
+#             Expand-Archive -LiteralPath $bdehdcfgZIP -DestinationPath $env:windir -ErrorAction SilentlyContinue
+#         }
+#         catch {
+#             Write-Host (get-date -DisplayHint Time) failed to expand $bdehdcfgZIP to $env:windir / most likely the files already exist
+#         }
+#         # Removing temp files
+#         Remove-Item $bdehdcfgZIP -Force
+#     }
+# }
 
 #install ACME package for Let's Encrypt support
 if (-not(Get-PackageProvider -Name NuGet -ListAvailable)) {

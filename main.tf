@@ -114,7 +114,37 @@ resource "azurerm_role_assignment" "role_assignment" {
   }
 }
 
-resource "azurerm_virtual_machine_extension" "ade_extension" {
+
+
+resource "azurerm_virtual_machine_extension" "script_extension" {
+  count = "${var.bdehdcfg_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  name                 = "CustomScriptExtension"
+  location             = "${var.location}"
+  resource_group_name  = "${var.resource_group_name}"
+  virtual_machine_name = "${azurerm_virtual_machine.virtual-machine.name}"
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.9"
+  auto_upgrade_minor_version = true
+  #https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
+  settings = <<SETTINGS_JSON
+  {
+    "fileUris": [
+      ""
+    ],
+    "timestamp": ""
+  }
+  SETTINGS_JSON
+   protected_settings = <<PROTECTED_SETTINGS_JSON
+    {
+      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}') ${file("${path.module}/Add-BdeHdCfg.ps1")}",
+      "storageAccountName": "",
+      "storageAccountKey": ""
+    }
+  PROTECTED_SETTINGS_JSON
+}
+
+resource "azurerm_virtual_machine_extension" "diskencryption_extension" {
   count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
@@ -124,21 +154,33 @@ resource "azurerm_virtual_machine_extension" "ade_extension" {
   type                 = "AzureDiskEncryption"
   type_handler_version = "2.2"
   auto_upgrade_minor_version = true
-  depends_on = ["azurerm_virtual_machine.virtual-machine"]
+  depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.script_extension"]
   #use default extension properties derived from:
   #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
+  # settings = <<SETTINGS_JSON
+  #       {
+  #             "AADClientCertThumbprint":"",
+  #             "AADClientID":"",
+  #             "EncryptionOperation":"EnableEncryption",
+  #             "KekVaultResourceId":"",
+  #             "KeyEncryptionAlgorithm":"",
+  #             "KeyEncryptionKeyURL":"",
+  #             "KeyVaultResourceId":"${var.keyvault_resource_id}",
+  #             "KeyVaultURL":"${var.keyvault_URL}",
+  #             "SequenceVersion":"",
+  #             "VolumeType":"All"
+  #        }
+  # SETTINGS_JSON
   settings = <<SETTINGS_JSON
         {
-              "KeyEncryptionKeyURL":"",
-              "KeyVaultURL":"${var.keyvault_URL}",
-              "VolumeType":"",
-              "KeyVaultResourceId":"${var.keyvault_resource_id}",
-              "KeyEncryptionAlgorithm":"",
-              "SequenceVersion":"",
-              "KekVaultResourceId":"",
-              "AADClientID":"",
-              "EncryptionOperation":"EnableEncryption",
-              "AADClientCertThumbprint":""
+          "EncryptionOperation" : "EnableEncryption",
+          "KekVaultResourceId" : "",
+          "KeyEncryptionAlgorithm" : "",
+          "KeyEncryptionKeyURL" : "",
+          "KeyVaultResourceId" : "${var.keyvault_resource_id}",
+          "KeyVaultURL" : "${var.keyvault_URL}",
+          "SequenceVersion" : "",
+          "VolumeType" : "All"
          }
   SETTINGS_JSON
 }
