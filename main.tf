@@ -117,7 +117,7 @@ resource "azurerm_role_assignment" "role_assignment" {
 
 
 resource "azurerm_virtual_machine_extension" "script_extension" {
-  count = "${var.bdehdcfg_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "CustomScriptExtension"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
