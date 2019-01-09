@@ -148,8 +148,7 @@ protected_settings = <<PROTECTED_SETTINGS_JSON
 }
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" {
   #depends on BdeHdCfg_script_extension_on_core
-  #count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
-  count = 0
+  count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
@@ -159,8 +158,6 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" 
   type_handler_version = "2.2"
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.BdeHdCfg_script_extension_on_core"]
-  #use default extension properties derived from:
-  #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
   settings = <<SETTINGS_JSON
         {
           "EncryptionOperation" : "EnableEncryption",
@@ -175,7 +172,6 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" 
   SETTINGS_JSON
 }
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_gui" {
-  #count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   #see that offer != WindowsServer || sku != *.Core
   count = "${(lookup(var.storage_image_reference, "offer", "") != "WindowsServer" || substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) != "Core") && var.keyvault_URL != "" && var.keyvault_resource_id != ""? 1 : 0}"
   name                 = "AzureDiskEncryption"
@@ -187,8 +183,6 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_gui" {
   type_handler_version = "2.2"
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
-  #use default extension properties derived from:
-  #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
   settings = <<SETTINGS_JSON
         {
           "EncryptionOperation" : "EnableEncryption",
