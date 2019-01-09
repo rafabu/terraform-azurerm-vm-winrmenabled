@@ -1,4 +1,4 @@
-Params ([string]$bdehdcfgURI = '')
+Param ([string]$bdehdcfgURI = '')
 Start-Transcript -Path '.\Add-BdeHdCfg.Log'
 if (((Get-WindowsEdition -Online).Edition -match '^Server.+Cor$') -and ($bdehdcfgURI.length -gt 0)) {
     #see if bdehdcfg is already present
