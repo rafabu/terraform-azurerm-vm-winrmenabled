@@ -115,9 +115,12 @@ resource "azurerm_role_assignment" "role_assignment" {
 }
 
 
-
-resource "azurerm_virtual_machine_extension" "script_extension" {
-  count = "${var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+#deploys BdeHdCfg.exe to Windows Server Core boxes
+resource "azurerm_virtual_machine_extension" "BdeHdCfg.exe_script_extension_on_core" {
+  #contains(var.storage_image_reference, "WindowsServer") == 1
+  # lookup(var.storage_image_reference, "offer", "") == "WindowsServer"
+  # lookup(var.storage_image_reference, "sku", "")
+  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "CustomScriptExtension"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
@@ -128,33 +131,8 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
   #https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
-  # settings = <<SETTINGS_JSON
-  # {
-  #   "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;",
-  #   "timestamp": ""
-  # }
-  # SETTINGS_JSON
-
-  # settings = <<SETTINGS_JSON
-  # {
-  #   "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -EncodedCommand ${base64encode("Param($bdehdcfgURI = 'http://nothing'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;")}",
-  #   "timestamp": ""
-  # }
-  # SETTINGS_JSON
-
-
-  # $file = Get-Content .\Add-BdeHdCfg.ps1
-  # [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($file))
-  # settings = <<SETTINGS_JSON
-  # {
-  #   "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -EncodedCommand UwB0AGEAcgB0AC0AVAByAGEAbgBzAGMAcgBpAHAAdAAgAC0AUABhAHQAaAAgACcALgBcAEEAZABkAC0AQgBkAGUASABkAEMAZgBnAC4ATABvAGcAJwAgAGkAZgAgACgAKAAoAEcAZQB0AC0AVwBpAG4AZABvAHcAcwBFAGQAaQB0AGkAbwBuACAALQBPAG4AbABpAG4AZQApAC4ARQBkAGkAdABpAG8AbgAgAC0AbQBhAHQAYwBoACAAJwBeAFMAZQByAHYAZQByAC4AKwBDAG8AcgAkACcAKQAgAC0AYQBuAGQAIAAoACQAYgBkAGUAaABkAGMAZgBnAFUAUgBJAC4AbABlAG4AZwB0AGgAIAAtAGcAdAAgADAAKQApACAAewAgACAAIAAgACAAIwBzAGUAZQAgAGkAZgAgAGIAZABlAGgAZABjAGYAZwAgAGkAcwAgAGEAbAByAGUAYQBkAHkAIABwAHIAZQBzAGUAbgB0ACAAIAAgACAAIABpAGYAIAAoAC0AbgBvAHQAIAAoAFQAZQBzAHQALQBQAGEAdABoACAAKAAkAGUAbgB2ADoAdwBpAG4AZABpAHIAIAArACAAJwBcAHMAeQBzAHQAZQBtADMAMgBcAEIAZABlAEgAZABDAGYAZwAuAGUAeABlACcAKQApACAALQBvAHIAIAAtAG4AbwB0ACAAKABUAGUAcwB0AC0AUABhAHQAaAAgACgAJABlAG4AdgA6AHcAaQBuAGQAaQByACAAKwAgACcAXABzAHkAcwB0AGUAbQAzADIAXABCAGQAZQBIAGQAQwBmAGcATABpAGIALgBkAGwAbAAnACkAKQApACAAewAgACAAIAAgACAAIAAgACAAIAAkAGIAZABlAGgAZABjAGYAZwBVAFIASQAgAC0AaQBtAGEAdABjAGgAIAAnAC4AKwAvACgALgArACkAJAAnACAAfAAgAE8AdQB0AC0ATgB1AGwAbAAgACAAIAAgACAAIAAgACAAIAAkAGIAZABlAGgAZABjAGYAZwBaAEkAUAAgAD0AIAAkAGUAbgB2ADoAVABFAE0AUAAgACsAIAAnAFwAJwAgACsAIAAkAG0AYQB0AGMAaABlAHMAWwAxAF0AIAAgACAAIAAgACAAIAAgACAAVwByAGkAdABlAC0ASABvAHMAdAAgACgAZwBlAHQALQBkAGEAdABlACAALQBEAGkAcwBwAGwAYQB5AEgAaQBuAHQAIABUAGkAbQBlACkAIABhAGQAZABpAG4AZwAgAGIAZABlAGgAZABjAGYAZwAgAHQAbwAgAFcAaQBuAGQAbwB3AHMAIABTAGUAcgB2AGUAcgAgAEMAbwByAGUAIAB0AG8AIABzAHUAcABwAG8AcgB0ACAAQQB6AHUAcgBlACAARABpAHMAawAgAEUAbgBjAHIAeQBwAHQAaQBvAG4AIAAgACAAIAAgACAAIAAgACAAVwByAGkAdABlAC0ASABvAHMAdAAgACgAZwBlAHQALQBkAGEAdABlACAALQBEAGkAcwBwAGwAYQB5AEgAaQBuAHQAIABUAGkAbQBlACkAIABkAG8AdwBuAGwAbwBhAGQAIABiAGQAZQBoAGQAYwBmAGcAIABmAHIAbwBtACAAJABiAGQAZQBoAGQAYwBmAGcAVQBSAEkAIAB0AG8AIAAkAGIAZABlAGgAZABjAGYAZwBaAEkAUAAgAGEAbgBkACAAZQB4AHAAYQBuAGQAIAB0AG8AIAAkAGUAbgB2ADoAdwBpAG4AZABpAHIAIAAgACAAIAAgACAAIAAgACAAWwBOAGUAdAAuAFMAZQByAHYAaQBjAGUAUABvAGkAbgB0AE0AYQBuAGEAZwBlAHIAXQA6ADoAUwBlAGMAdQByAGkAdAB5AFAAcgBvAHQAbwBjAG8AbAAgAD0AIABbAE4AZQB0AC4AUwBlAGMAdQByAGkAdAB5AFAAcgBvAHQAbwBjAG8AbABUAHkAcABlAF0AOgA6AFQAbABzADEAMgAgACAAIAAgACAAIAAgACAAIABJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAkAGIAZABlAGgAZABjAGYAZwBVAFIASQAgAC0ATwB1AHQAIAAkAGIAZABlAGgAZABjAGYAZwBaAEkAUAAgACAAIAAgACAAIAAgACAAIAB0AHIAeQAgAHsAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIABFAHgAcABhAG4AZAAtAEEAcgBjAGgAaQB2AGUAIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACQAYgBkAGUAaABkAGMAZgBnAFoASQBQACAALQBEAGUAcwB0AGkAbgBhAHQAaQBvAG4AUABhAHQAaAAgACQAZQBuAHYAOgB3AGkAbgBkAGkAcgAgAC0ARQByAHIAbwByAEEAYwB0AGkAbwBuACAAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAgACAAIAAgACAAIAAgACAAIAB9ACAAIAAgACAAIAAgACAAIAAgAGMAYQB0AGMAaAAgAHsAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIABXAHIAaQB0AGUALQBIAG8AcwB0ACAAKABnAGUAdAAtAGQAYQB0AGUAIAAtAEQAaQBzAHAAbABhAHkASABpAG4AdAAgAFQAaQBtAGUAKQAgAGYAYQBpAGwAZQBkACAAdABvACAAZQB4AHAAYQBuAGQAIAAkAGIAZABlAGgAZABjAGYAZwBaAEkAUAAgAHQAbwAgACQAZQBuAHYAOgB3AGkAbgBkAGkAcgAgAC8AIABtAG8AcwB0ACAAbABpAGsAZQBsAHkAIAB0AGgAZQAgAGYAaQBsAGUAcwAgAGEAbAByAGUAYQBkAHkAIABlAHgAaQBzAHQAIAAgACAAIAAgACAAIAAgACAAfQAgACAAIAAgACAAIAAgACAAIAAjACAAUgBlAG0AbwB2AGkAbgBnACAAdABlAG0AcAAgAGYAaQBsAGUAcwAgACAAIAAgACAAIAAgACAAIABSAGUAbQBvAHYAZQAtAEkAdABlAG0AIAAkAGIAZABlAGgAZABjAGYAZwBaAEkAUAAgAC0ARgBvAHIAYwBlACAAIAAgACAAIAB9ACAAfQAgAFMAdABvAHAALQBUAHIAYQBuAHMAYwByAGkAcAB0AA==",
-  #   "timestamp": ""
-  # }
-  # SETTINGS_JSON
-
   settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
     "fileUris": [
       "${var.bdehdcfg_ps1_uri}",
       "${var.bdehdcfg_zip_uri}"
@@ -162,35 +140,15 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
     "timestamp": ""
   }
   SETTINGS_JSON
-
-#  "fileUris: ["https://github.com/rafabu/terraform-azurerm-vm-winrmenabled/raw/master/Add-BdeHdCfg.ps1"],
-
-
-
-
-  #  protected_settings = <<PROTECTED_SETTINGS_JSON
-  #   {
-  #     "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}') ${file("${path.module}/Add-BdeHdCfg.ps1")}",
-  #     "storageAccountName": "",
-  #     "storageAccountKey": ""
-  #   }
-  # PROTECTED_SETTINGS_JSON
-  protected_settings = <<PROTECTED_SETTINGS_JSON
+protected_settings = <<PROTECTED_SETTINGS_JSON
     {
+      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
       "storageAccountName": "",
       "storageAccountKey": ""
     }
   PROTECTED_SETTINGS_JSON
-# protected_settings = <<PROTECTED_SETTINGS_JSON
-#     {
-#       "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -EncodedCommand ${base64encode('Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;''}",
-#       "storageAccountName": "",
-#       "storageAccountKey": ""
-#     }
-#   PROTECTED_SETTINGS_JSON
 }
-
-resource "azurerm_virtual_machine_extension" "diskencryption_extension" {
+resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" {
   #count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   count = 0
   name                 = "AzureDiskEncryption"
@@ -201,23 +159,36 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension" {
   type                 = "AzureDiskEncryption"
   type_handler_version = "2.2"
   auto_upgrade_minor_version = true
-  depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.script_extension"]
+  depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.BdeHdCfg.exe_script_extension_on_core"]
   #use default extension properties derived from:
   #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
-  # settings = <<SETTINGS_JSON
-  #       {
-  #             "AADClientCertThumbprint":"",
-  #             "AADClientID":"",
-  #             "EncryptionOperation":"EnableEncryption",
-  #             "KekVaultResourceId":"",
-  #             "KeyEncryptionAlgorithm":"",
-  #             "KeyEncryptionKeyURL":"",
-  #             "KeyVaultResourceId":"${var.keyvault_resource_id}",
-  #             "KeyVaultURL":"${var.keyvault_URL}",
-  #             "SequenceVersion":"",
-  #             "VolumeType":"All"
-  #        }
-  # SETTINGS_JSON
+  settings = <<SETTINGS_JSON
+        {
+          "EncryptionOperation" : "EnableEncryption",
+          "KekVaultResourceId" : "",
+          "KeyEncryptionAlgorithm" : "",
+          "KeyEncryptionKeyURL" : "",
+          "KeyVaultResourceId" : "${var.keyvault_resource_id}",
+          "KeyVaultURL" : "${var.keyvault_URL}",
+          "SequenceVersion" : "",
+          "VolumeType" : "All"
+         }
+  SETTINGS_JSON
+}
+resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_gui" {
+  #count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = 0
+  name                 = "AzureDiskEncryption"
+  location             = "${var.location}"
+  resource_group_name  = "${var.resource_group_name}"
+  virtual_machine_name = "${azurerm_virtual_machine.virtual-machine.name}"
+  publisher            = "Microsoft.Azure.Security"
+  type                 = "AzureDiskEncryption"
+  type_handler_version = "2.2"
+  auto_upgrade_minor_version = true
+  depends_on = ["azurerm_virtual_machine.virtual-machine"]
+  #use default extension properties derived from:
+  #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
   settings = <<SETTINGS_JSON
         {
           "EncryptionOperation" : "EnableEncryption",
