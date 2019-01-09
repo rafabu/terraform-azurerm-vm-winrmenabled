@@ -155,8 +155,10 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
   settings = <<SETTINGS_JSON
   {
     "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;",
-
-    "timestamp": ""
+    "fileUris": [
+                "https://github.com/rafabu/terraform-azurerm-vm-winrmenabled/raw/master/Add-BdeHdCfg.ps1"
+            ],
+            "timestamp"
   }
   SETTINGS_JSON
 
