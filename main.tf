@@ -145,9 +145,27 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
 #       "storageAccountKey": ""
 #     }
 #   PROTECTED_SETTINGS_JSON
+
+#         "commandToExecute": "powershell -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(data.template_file.join_vsts_deployment_group_powershell_script.rendered)}')) | Out-File -filepath vsts_agent_script.ps1\" && powershell -ExecutionPolicy Unrestricted -File vsts_agent_script.ps1"
+
+
+# settings = <<SETTINGS_JSON
+#   {
+#     "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"var.bdehdcfg_zip_uri\"")}",
+#     "fileUris": [
+#       "${var.bdehdcfg_ps1_uri}",
+#       "${var.bdehdcfg_zip_uri}"
+#       ],
+#     "timestamp": ""
+#   }
+#   SETTINGS_JSON
+
+#  "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(${file(path.module}/dependencies/Add-BdeHdCfg.ps1)})}')) | Out-File -filepath \"./Add-BdeHdCfg.ps1\" && powershell -ExecutionPolicy Unrestricted -File ./Add-BdeHdCfg.ps1 -bdehdcfgURI var.bdehdcfg_zip_uri",
+
+#                                                                                                                                                          ${file("${path.module}/Enable-WinRMDuringDeploy.ps1")}
 settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"")}",
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(${file(\"${path.module}/dependencies/Add-BdeHdCfg.ps1\")})}')) | Out-File -filepath './Add-BdeHdCfg.ps1' && powershell -ExecutionPolicy Unrestricted -File './Add-BdeHdCfg.ps1' -bdehdcfgURI '${var.bdehdcfg_zip_uri}'\"",
     "fileUris": [
       "${var.bdehdcfg_ps1_uri}",
       "${var.bdehdcfg_zip_uri}"
@@ -155,6 +173,8 @@ settings = <<SETTINGS_JSON
     "timestamp": ""
   }
   SETTINGS_JSON
+
+
 protected_settings = <<PROTECTED_SETTINGS_JSON
     {
       "storageAccountName": "",
