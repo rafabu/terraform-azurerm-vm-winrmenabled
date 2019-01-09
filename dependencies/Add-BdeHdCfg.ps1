@@ -18,5 +18,12 @@ if (((Get-WindowsEdition -Online).Edition -match '^Server.+Cor$') -and ($bdehdcf
         # Removing temp files
         Remove-Item $bdehdcfgZIP -Force
     }
+    else{
+        Write-Host (get-date -DisplayHint Time) NOT adding bdehdcfg as:
+        Write-Host `tWindowsEdition: (Get-WindowsEdition -Online).Edition
+        Write-Host `tbdehdcfgURI: $bdehdcfgURI
+        Write-Host `tBdeHdCfg.exe installed: (Test-Path ($env:windir + '\system32\BdeHdCfg.exe')).ToString()
+
+    }
 }
 Stop-Transcript
