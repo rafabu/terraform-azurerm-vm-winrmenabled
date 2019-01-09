@@ -117,10 +117,8 @@ resource "azurerm_role_assignment" "role_assignment" {
 
 #deploys BdeHdCfg.exe to Windows Server Core boxes
 resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
-  #contains(var.storage_image_reference, "WindowsServer") == 1
-  # lookup(var.storage_image_reference, "offer", "") == "WindowsServer"
-  # lookup(var.storage_image_reference, "sku", "")
-  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  #see that offer = WindowsServer && sku = *.Core
+  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "CustomScriptExtension"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
