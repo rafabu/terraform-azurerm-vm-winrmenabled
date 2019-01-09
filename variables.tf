@@ -86,7 +86,10 @@ variable "winrm_https_port" {
 variable "winrm_remote_address" {
     default = "LocalSubnet"
 }
-variable "bdehdcfg_uri" {
+variable "bdehdcfg_ps1_uri" {
+    default = ""
+}
+variable "bdehdcfg_zip_uri" {
     default = ""
 }
 
