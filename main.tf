@@ -116,7 +116,7 @@ resource "azurerm_role_assignment" "role_assignment" {
 
 
 #deploys BdeHdCfg.exe to Windows Server Core boxes
-resource "azurerm_virtual_machine_extension" "BdeHdCfg.exe_script_extension_on_core" {
+resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
   #contains(var.storage_image_reference, "WindowsServer") == 1
   # lookup(var.storage_image_reference, "offer", "") == "WindowsServer"
   # lookup(var.storage_image_reference, "sku", "")
@@ -159,7 +159,7 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" 
   type                 = "AzureDiskEncryption"
   type_handler_version = "2.2"
   auto_upgrade_minor_version = true
-  depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.BdeHdCfg.exe_script_extension_on_core"]
+  depends_on = ["azurerm_virtual_machine.virtual-machine", "azurerm_virtual_machine_extension.BdeHdCfg_script_extension_on_core"]
   #use default extension properties derived from:
   #https://github.com/Azure/azure-quickstart-templates/blob/master/201-encrypt-vmss-windows-jumpbox/azuredeploy.json
   settings = <<SETTINGS_JSON
