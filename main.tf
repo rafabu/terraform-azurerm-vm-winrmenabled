@@ -147,7 +147,7 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
 #   PROTECTED_SETTINGS_JSON
 settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"")",
+    "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"")}",
     "fileUris": [
       "${var.bdehdcfg_ps1_uri}",
       "${var.bdehdcfg_zip_uri}"
