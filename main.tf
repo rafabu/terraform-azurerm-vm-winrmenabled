@@ -115,7 +115,7 @@ resource "azurerm_role_assignment" "role_assignment" {
 }
 
 
-#deploys BdeHdCfg.exe to Windows Server Core boxes
+#deploys BdeHdCfg.exe to Windows Server Core boxes as pre-requisite to Azure Disk Encryption
 resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
   #see that offer = WindowsServer && sku = *.Core
   count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
@@ -129,8 +129,25 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
   #https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
-  settings = <<SETTINGS_JSON
+#   settings = <<SETTINGS_JSON
+#   {
+#     "fileUris": [
+#       "${var.bdehdcfg_ps1_uri}",
+#       "${var.bdehdcfg_zip_uri}"
+#       ],
+#     "timestamp": ""
+#   }
+#   SETTINGS_JSON
+# protected_settings = <<PROTECTED_SETTINGS_JSON
+#     {
+#       "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
+#       "storageAccountName": "",
+#       "storageAccountKey": ""
+#     }
+#   PROTECTED_SETTINGS_JSON
+settings = <<SETTINGS_JSON
   {
+    "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"")",
     "fileUris": [
       "${var.bdehdcfg_ps1_uri}",
       "${var.bdehdcfg_zip_uri}"
@@ -140,14 +157,12 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
   SETTINGS_JSON
 protected_settings = <<PROTECTED_SETTINGS_JSON
     {
-      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
       "storageAccountName": "",
       "storageAccountKey": ""
     }
   PROTECTED_SETTINGS_JSON
 }
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" {
-  #depends on BdeHdCfg_script_extension_on_core
   count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
@@ -171,6 +186,7 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" 
          }
   SETTINGS_JSON
 }
+#on GUI systems, Azure Disk Encryption can be enabled without any prerequisite
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_gui" {
   #see that offer != WindowsServer || sku != *.Core
   count = "${(lookup(var.storage_image_reference, "offer", "") != "WindowsServer" || substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) != "Core") && var.keyvault_URL != "" && var.keyvault_resource_id != ""? 1 : 0}"
