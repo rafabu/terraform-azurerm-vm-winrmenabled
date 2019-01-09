@@ -128,12 +128,21 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
   #https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
+  # settings = <<SETTINGS_JSON
+  # {
+  #   "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;",
+  #   "timestamp": ""
+  # }
+  # SETTINGS_JSON
+
   settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -EncodedCommand ${base64encode("Param($bdehdcfgURI = '${var.bdehdcfg_uri}'); Start-Transcript -Path '.\\Add-BdeHdCfg.Log'; Stop-Transcript;")}",
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command ${base64encode("Param($bdehdcfgURI = \"${var.bdehdcfg_uri}\"); Start-Transcript -Path \".\Add-BdeHdCfg.Log\"; Stop-Transcript;")",
     "timestamp": ""
   }
   SETTINGS_JSON
+
+
   #  protected_settings = <<PROTECTED_SETTINGS_JSON
   #   {
   #     "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command Param($bdehdcfgURI = '${var.bdehdcfg_uri}') ${file("${path.module}/Add-BdeHdCfg.ps1")}",
