@@ -29,7 +29,7 @@ resource "azurerm_virtual_machine" "virtual-machine" {
     #this is placed on the VM as 'C:\AzureData\CustomData.bin' but is actually a PoSh script. Called during FirstLogonCommands
     #subscription id is as follows: /subscriptions/00000000-0000-0000-0000-000000000000
     #called PoSh script is currrently taking care of this
-    custom_data = "${base64encode("Param($azSubscriptionId = \"${data.azurerm_subscription.subscription.id}\", $acmeServer = \"${var.acme_server}\", $dnsSuffix = \"${var.dns_suffix}\", $mgtDNSSuffix = \"${var.dns_suffix_mgmt}\", $winRmRemoteAddress = \"${var.winrm_remote_address}\", $winRmPortHTTP = \"5985\", $winRmPortHTTPS = \"${var.winrm_https_port}\", $bdehdcfgURI = \"${var.bdehdcfg_uri}\") ${file("${path.module}/Enable-WinRMDuringDeploy.ps1")}")}"
+    custom_data = "${base64encode("Param($azSubscriptionId = \"${data.azurerm_subscription.subscription.id}\", $acmeServer = \"${var.acme_server}\", $dnsSuffix = \"${var.dns_suffix}\", $mgtDNSSuffix = \"${var.dns_suffix_mgmt}\", $winRmRemoteAddress = \"${var.winrm_remote_address}\", $winRmPortHTTP = \"5985\", $winRmPortHTTPS = \"${var.winrm_https_port}\") ${file("${path.module}/Enable-WinRMDuringDeploy.ps1")}")}"
     }
   os_profile_windows_config {
     provision_vm_agent        = true
