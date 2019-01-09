@@ -86,13 +86,9 @@ variable "winrm_https_port" {
 variable "winrm_remote_address" {
     default = "LocalSubnet"
 }
-variable "bdehdcfg_ps1_uri" {
-    default = ""
-}
 variable "bdehdcfg_zip_uri" {
     default = ""
 }
-
 variable "keyvault_URL" {
     default = ""
     description = "if specified together with keyvault_resource_id, Azure Disk Encryption is enabled on the VM"
