@@ -157,7 +157,8 @@ resource "azurerm_virtual_machine_extension" "script_extension" {
 }
 
 resource "azurerm_virtual_machine_extension" "diskencryption_extension" {
-  count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  #count = "${var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = 0
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
