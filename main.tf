@@ -165,7 +165,7 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
 #                                                                                                                                                          ${file("${path.module}/Enable-WinRMDuringDeploy.ps1")}
 settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(${file(\"${path.module}/dependencies/Add-BdeHdCfg.ps1\")})}')) | Out-File -filepath './Add-BdeHdCfg.ps1' && powershell -ExecutionPolicy Unrestricted -File './Add-BdeHdCfg.ps1' -bdehdcfgURI '${var.bdehdcfg_zip_uri}'\"",
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(file(\"${path.module}/dependencies/Add-BdeHdCfg.ps1\"))}')) | Out-File -filepath './Add-BdeHdCfg.ps1' && powershell -ExecutionPolicy Unrestricted -File './Add-BdeHdCfg.ps1' -bdehdcfgURI '${var.bdehdcfg_zip_uri}'\"",
     "fileUris": [
       "${var.bdehdcfg_ps1_uri}",
       "${var.bdehdcfg_zip_uri}"
