@@ -8,6 +8,7 @@ Terraform module to deploy a Windows VM on Azure. Will also enable WinRM with a 
   - configure scheduled task to maintain Let's Encrypt certificate using Posh-ACME module
   - configure WinRM with certificate
   - configure certificate to be used with RDP
+- enable Azure Disk Encryption using VM extension (also adds BdeHDCfg.exe to Windows Server Core via script extension)
   
 ## Caution
 Consider this experimental. Also; the LE Certificates will currently require reboots
@@ -49,5 +50,11 @@ module "azurerm_virtual_machine_winrmenabled" {
   acme_server = "${var.env-type == "prod" ? "LE_PROD" : "LE_STAGE"}"
   winrm_remote_address = "${var.env-address-space}"
   winrm_https_port = "5986"
+  ####
+  # if enabling Azure Disk Encryption
+  # URI to ZIP file containing bdehdcfg files for Windows Server Core
+  keyvault_URL = "https://tatatarard-keyvault.vault.azure.net/"
+  keyvault_resource_id = "/subscriptions/578/resourceGroups/lab01-rg/providers/Microsoft.KeyVault/vaults/tatatarard-keyvault"
+  bdehdcfg_zip_uri = "https://github.com/rafabu/terraform-azurerm-vm-winrmenabled/raw/master/dependencies/bdehdcfg-windows-core-10.0.17763.1.zip"
 }
 ```
