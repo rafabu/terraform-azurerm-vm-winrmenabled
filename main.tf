@@ -119,7 +119,7 @@ resource "azurerm_role_assignment" "role_assignment" {
 resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
   #see that offer = WindowsServer && sku = *.Core
   count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.bdehdcfg_ps1_uri !="" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
-  name                 = "CustomScriptExtension"
+  name                 = "BdehdcfgInstallOnCore"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
   virtual_machine_name = "${azurerm_virtual_machine.virtual-machine.name}"
@@ -129,53 +129,14 @@ resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core"
   auto_upgrade_minor_version = true
   depends_on = ["azurerm_virtual_machine.virtual-machine"]
   #https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
-#   settings = <<SETTINGS_JSON
-#   {
-#     "fileUris": [
-#       "${var.bdehdcfg_ps1_uri}",
-#       "${var.bdehdcfg_zip_uri}"
-#       ],
-#     "timestamp": ""
-#   }
-#   SETTINGS_JSON
-# protected_settings = <<PROTECTED_SETTINGS_JSON
-#     {
-#       "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
-#       "storageAccountName": "",
-#       "storageAccountKey": ""
-#     }
-#   PROTECTED_SETTINGS_JSON
-
-#         "commandToExecute": "powershell -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(data.template_file.join_vsts_deployment_group_powershell_script.rendered)}')) | Out-File -filepath vsts_agent_script.ps1\" && powershell -ExecutionPolicy Unrestricted -File vsts_agent_script.ps1"
-
-
-# settings = <<SETTINGS_JSON
-#   {
-#     "commandToExecute": "${base64encode("powershell.exe -ExecutionPolicy Unrestricted -File \"./Add-BdeHdCfg.ps1\" -bdehdcfgURI \"var.bdehdcfg_zip_uri\"")}",
-#     "fileUris": [
-#       "${var.bdehdcfg_ps1_uri}",
-#       "${var.bdehdcfg_zip_uri}"
-#       ],
-#     "timestamp": ""
-#   }
-#   SETTINGS_JSON
-
-#  "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode(${file(path.module}/dependencies/Add-BdeHdCfg.ps1)})}')) | Out-File -filepath \"./Add-BdeHdCfg.ps1\" && powershell -ExecutionPolicy Unrestricted -File ./Add-BdeHdCfg.ps1 -bdehdcfgURI var.bdehdcfg_zip_uri",
-
-#                                                                                                                                                          ${file("${path.module}/Enable-WinRMDuringDeploy.ps1")}
-
-#"commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode("ABCDEFG")}')) | Out-File -filepath './Add-BdeHdCfg.ps1' && powershell -ExecutionPolicy Unrestricted -File './Add-BdeHdCfg.ps1' -bdehdcfgURI '${var.bdehdcfg_zip_uri}'\"",
-
 settings = <<SETTINGS_JSON
   {
-    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode("${file("${path.module}/dependencies/Add-BdeHdCfg.ps1")}")}')) | Out-File -filepath './Add-BdeHdCfg.ps1'\" && powershell.exe -ExecutionPolicy Unrestricted -File \".\\Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
     "timestamp": ""
   }
   SETTINGS_JSON
-
-
 protected_settings = <<PROTECTED_SETTINGS_JSON
     {
+      "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -command \"[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64encode("${file("${path.module}/dependencies/Add-BdeHdCfg.ps1")}")}')) | Out-File -filepath './Add-BdeHdCfg.ps1'\" && powershell.exe -ExecutionPolicy Unrestricted -File \".\\Add-BdeHdCfg.ps1\" -bdehdcfgURI \"${var.bdehdcfg_zip_uri}\"",
       "storageAccountName": "",
       "storageAccountKey": ""
     }
