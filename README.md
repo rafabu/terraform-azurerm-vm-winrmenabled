@@ -1,5 +1,5 @@
 # terraform-azurerm-vm-winrmenabled
-Terraform module to deploy a Windows VM on Azure. Will also enable WinRM with a Let's Encrypt certificate
+Terraform module to deploy a Windows VM on Azure. Will also enable WinRM with a Let's Encrypt certificate and enable Azure Disk Encryption.
 
 - Create Windows VM with delegation rights to maintain ACME DNS TXT records
 - if public IP: create A-Record
@@ -15,7 +15,7 @@ Consider this experimental. Also; the LE Certificates will currently require reb
 
 ## Usage
 
-Windows 10 VM with public IP set
+Windows 10 VM with public IP set and disk encryption enabled
 
 ```hcl
 module "azurerm_virtual_machine_winrmenabled" {
