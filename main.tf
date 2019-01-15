@@ -7,7 +7,7 @@ data "azurerm_builtin_role_definition" "role_DNSZoneContributor" {
 resource "azurerm_virtual_machine" "virtual-machine" {
  name = "${var.name}-vm"
  location              = "${var.location}"
- #availability_set_id   = "${azurerm_availability_set.avset.id}"
+ availability_set_id   = "${var.availability_set_id == "" ? "" : var.availability_set_id }"
  resource_group_name   = "${var.resource_group_name}"
  network_interface_ids = ["${azurerm_network_interface.network-interface.id}"]
  vm_size               = "${var.vm_size}"

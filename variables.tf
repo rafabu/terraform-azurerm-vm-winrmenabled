@@ -25,6 +25,10 @@ variable "resource_group_name" {
 
 }
 
+variable "availability_set_id" {
+    default = ""
+}
+
 variable "vm_size" {
     default = "Standard_B2s"
 
