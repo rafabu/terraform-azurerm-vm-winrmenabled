@@ -7,6 +7,8 @@ data "azurerm_builtin_role_definition" "role_DNSZoneContributor" {
 locals {
   private_ip_address            = "${var.private_ip_address != "" ? var.private_ip_address : ""}"
   private_ip_address_allocation = "${var.private_ip_address != "" ? "static" : "dynamic"}"
+  #hack as public ip might be null - which can break tf
+  public_ip_address_value = "${element(concat(azurerm_public_ip.public-ip.*.ip_address, list("")), 0)}"
 }
 
 resource "azurerm_virtual_machine" "virtual-machine" {
@@ -92,10 +94,6 @@ resource "azurerm_public_ip" "public-ip" {
   public_ip_address_allocation = "${var.static_public_ip == 1 ? "static" : "dynamic"}"
 }
 
-locals {
-  #hack as public ip might be null - which can break tf
-  public_ip_address_value = "${element(concat(azurerm_public_ip.public-ip.*.ip_address, list("")), 0)}"
-}
 #create a-record only if enable_public_ip and dns parameters present
 resource "azurerm_dns_a_record" "a-record" {
   #count = "${var.enable_public_ip == 1 && var.dns_zone_name != "" && var.dns_resource_group_name != "" ? 1 : 0}"
