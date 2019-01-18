@@ -4,6 +4,11 @@ data "azurerm_builtin_role_definition" "role_DNSZoneContributor" {
   name = "DNS Zone Contributor"
 }
 
+locals {
+  private_ip_address            = "${var.private_ip_address != "" ? var.private_ip_address : ""}"
+  private_ip_address_allocation = "${var.private_ip_address != "" ? "static" : "dynamic"}"
+}
+
 resource "azurerm_virtual_machine" "virtual-machine" {
  name = "${var.name}-vm"
  location              = "${var.location}"
@@ -68,7 +73,9 @@ resource "azurerm_network_interface" "network-interface" {
  ip_configuration {
    name                          = "network-interface_ip_configuration"
    subnet_id                     = "${var.subnet_id}"
-   private_ip_address_allocation = "dynamic"
+   private_ip_address            = "${local.private_ip_address}"
+   private_ip_address_allocation = "${local.private_ip_address_allocation}"
+   private_ip_address_version    = "IPv4"
    #hack as public ip might be null - which can break tf
    public_ip_address_id = "${var.enable_public_ip == 1 ? "${element(concat(azurerm_public_ip.public-ip.*.id, list("")), 0)}" : ""}"
    #load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
