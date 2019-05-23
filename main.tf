@@ -124,7 +124,7 @@ resource "azurerm_role_assignment" "DNSZoneContributor-role_assignment" {
 #deploys BdeHdCfg.exe to Windows Server Core boxes as pre-requisite to Azure Disk Encryption
 resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
   #see that offer = WindowsServer && sku = *.Core
-  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" || substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) == "Core-smalldisk") && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
   name                 = "CustomScriptExtension"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
