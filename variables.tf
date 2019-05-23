@@ -5,7 +5,7 @@ variable "location" {
 }
 
 variable "dns_suffix" {
-    description = "promary DNS suffix of VM created"
+    description = "primary DNS suffix of VM created"
 }
 
 variable "dns_suffix_mgmt" {
@@ -48,7 +48,7 @@ variable "storage_image_reference" {
         #https://docs.microsoft.com/en-us/azure/virtual-machines/windows/cli-ps-findimage
         publisher = "MicrosoftWindowsServer"
         offer     = "WindowsServer"
-        sku       = "2016-Datacenter-smalldisk"
+        sku       = "2019-Datacenter-smalldisk"
         version   = "latest"
     }
 }

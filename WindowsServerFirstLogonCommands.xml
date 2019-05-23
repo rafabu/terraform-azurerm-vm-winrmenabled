@@ -12,7 +12,7 @@
         <RequiresUserInput>false</RequiresUserInput>
     </SynchronousCommand>
      <SynchronousCommand>
-        <CommandLine>%windir%\system32\shutdown.exe /r /t 30 /c "reached end of FirstLogonCommands triggered by Terraform"</CommandLine
+        <CommandLine>%windir%\system32\shutdown.exe /r /t 10 /c "reached end of FirstLogonCommands triggered by Terraform"</CommandLine
         ><Description>InitiateRestart</Description>
         <Order>13</Order>
         <RequiresUserInput>false</RequiresUserInput>

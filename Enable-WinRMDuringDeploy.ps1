@@ -219,151 +219,100 @@ $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 
 Write-Host (get-date -DisplayHint Time) Starting in context UserName: $userName / IsAdmin: $isAdmin
 
-
-# #on server CORE, copy bdehdcdg to WINDOWS to support Azure Disk Encryption
-# #   https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption-tsg#troubleshooting-windows-server-2016-server-core
-# if (((Get-WindowsEdition -Online).Edition -match "^Server.+Cor$") -and ($bdehdcfgURI.length -gt 0)) {
-#     #see if bdehdcfg is already present
-#     if (-not (Test-Path ($env:windir + "\system32\BdeHdCfg.exe")) -or -not (Test-Path ($env:windir + "\system32\BdeHdCfgLib.dll"))) {
-#         $bdehdcfgURI -imatch ".+/(.+)$" | Out-Null
-#         $bdehdcfgZIP = $env:TEMP + "\" + $matches[1]
-#         Write-Host (get-date -DisplayHint Time) adding bdehdcfg to Windows Server Core to support Azure Disk Encryption
-#         Write-Host (get-date -DisplayHint Time) download bdehdcfg from $bdehdcfgURI to $bdehdcfgZIP and expand to $env:windir
-#         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-#         Invoke-WebRequest $bdehdcfgURI -Out $bdehdcfgZIP
-#         try {
-#             Expand-Archive -LiteralPath $bdehdcfgZIP -DestinationPath $env:windir -ErrorAction SilentlyContinue
-#         }
-#         catch {
-#             Write-Host (get-date -DisplayHint Time) failed to expand $bdehdcfgZIP to $env:windir / most likely the files already exist
-#         }
-#         # Removing temp files
-#         Remove-Item $bdehdcfgZIP -Force
-#     }
-# }
-
-#install ACME package for Let's Encrypt support
-if (-not(Get-PackageProvider -Name NuGet -ListAvailable)) {
-    Install-PackageProvider -Name NuGet -Scope AllUsers -Force
-    Write-Host (get-date -DisplayHint Time) installing NuGet
-}
-$nugetProvider = Get-PackageProvider -Name NuGet -ListAvailable
-if (-not($nugetProvider)) {
-    Write-Host (get-date -DisplayHint Time) failed to use/install NuGet - this is really bad
-    Write-Host (get-date -DisplayHint Time) ....fail, thank you and good bye
-} else {
-    write-host (get-date -DisplayHint Time) $nugetProvider.Name version $nugetProvider.version is installed
-
-    #Posh-ACME requires >= .net 4.7.1... load backward module on legacy 4.6
-    if ((Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 394802) {
-        if (-not(Get-Module -Name Posh-ACME -ListAvailable)) {
-            Install-Module -Name Posh-ACME  -Scope AllUsers -Force
-            Write-Host (get-date -DisplayHint Time) Installing Posh-ACME
-        }
-    } else {
-        if (-not(Get-Module -Name Posh-ACME.net46 -ListAvailable)) {
-            Install-Module -Name Posh-ACME.net46  -Scope AllUsers -Force
-            Write-Host (get-date -DisplayHint Time) Installing Posh-ACME.net46
-        }
+if (-not($winRmRemoteAddress -eq "NONE")) {
+    #enable WinRM for HTTPS use
+    If ((Get-Service "WinRM").Status -ne "Running") {
+        Set-Service -Name "WinRM" -StartupType Automatic
+        Start-Service -Name "WinRM" -ErrorAction Stop
+        Write-Host (get-date -DisplayHint Time) Enabled WinRM service
     }
-    $acmeModule = (Get-Module -Name Posh-ACME* -ListAvailable)
-    if (-not($acmeModule)) {
-        Write-Host (get-date -DisplayHint Time) failed to install Posh-ACME - this is really bad
+    If (!(Get-PSSessionConfiguration -Verbose:$false) -or (!(Get-ChildItem WSMan:\localhost\Listener))) {
+        Enable-PSRemoting -SkipNetworkProfileCheck -Force -ErrorAction Stop
+        Write-Host (get-date -DisplayHint Time) Enabled PSRemoting
+    }
+    $basicAuthSetting = Get-ChildItem WSMan:\localhost\Service\Auth | Where-Object { $_.Name -eq "Basic" }
+    If (($basicAuthSetting.Value) -eq $false) {
+        Set-Item -Path "WSMan:\localhost\Service\Auth\Basic" -Value $true
+        Write-Host (get-date -DisplayHint Time) Set Basic Auth in WinRM
+    }
+    #winrm over http (for windows admin center / Azure Automation)
+    #dont' touch existing rule or Set-WSManQuickConfig in PoSh Extension will fail
+    $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
+    if ($netFWRulehttp) {
+        Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+    } else {
+        New-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+    }
+    if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET").Enabled -eq "false") {
+        Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP-AZUREVNET
+    }
+    #winrm over https (for ansible et al)
+    $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
+    if ($netFWRulehttps) {
+        Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+    } else {
+        New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+    }
+    if ((Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET").Enabled -eq "false") {
+        Enable-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
+        Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - enabled rule WINRM-HTTPS-In-TCP-AZUREVNET
+    }
+}
+
+if (-not($acmeServer -eq "NONE")) {
+    #install ACME package for Let's Encrypt support
+    if (-not(Get-PackageProvider -Name NuGet -ListAvailable)) {
+        Install-PackageProvider -Name NuGet -Scope AllUsers -Force
+        Write-Host (get-date -DisplayHint Time) installing NuGet
+    }
+    $nugetProvider = Get-PackageProvider -Name NuGet -ListAvailable
+    if (-not($nugetProvider)) {
+        Write-Host (get-date -DisplayHint Time) failed to use/install NuGet - this is really bad
         Write-Host (get-date -DisplayHint Time) ....fail, thank you and good bye
     } else {
-        write-host (get-date -DisplayHint Time) $acmeModule.Name version $acmeModule.version is installed
+        write-host (get-date -DisplayHint Time) $nugetProvider.Name version $nugetProvider.version is installed
 
-        #enable WinRM for HTTPS use
-        If ((Get-Service "WinRM").Status -ne "Running") {
-            Set-Service -Name "WinRM" -StartupType Automatic
-            Start-Service -Name "WinRM" -ErrorAction Stop
-            Write-Host (get-date -DisplayHint Time) Enabled WinRM service
-        }
-        If (!(Get-PSSessionConfiguration -Verbose:$false) -or (!(Get-ChildItem WSMan:\localhost\Listener))) {
-            Enable-PSRemoting -SkipNetworkProfileCheck -Force -ErrorAction Stop
-            Write-Host (get-date -DisplayHint Time) Enabled PSRemoting
-        }
-        $basicAuthSetting = Get-ChildItem WSMan:\localhost\Service\Auth | Where-Object {$_.Name -eq "Basic"}
-        If (($basicAuthSetting.Value) -eq $false) {
-            Set-Item -Path "WSMan:\localhost\Service\Auth\Basic" -Value $true
-            Write-Host (get-date -DisplayHint Time) Set Basic Auth in WinRM
-        }
-        #winrm over http (for windows admin center / Azure Automation)
-        #dont' touch existing rule or Set-WSManQuickConfig in PoSh Extension will fail
-        $netFWRulehttp = Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
-        if ($netFWRulehttp) {
-            Set-NetFirewallRule -InputObject $netFWRulehttp -NewDisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTP. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - updated rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+        #Posh-ACME requires >= .net 4.7.1... load backward module on legacy 4.6
+        if ((Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 394802) {
+            if (-not(Get-Module -Name Posh-ACME -ListAvailable)) {
+                Install-Module -Name Posh-ACME  -Scope AllUsers -Force
+                Write-Host (get-date -DisplayHint Time) Installing Posh-ACME
+            }
         } else {
-            New-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTP-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTP]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTP -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - added rule WINRM-HTTP-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+            if (-not(Get-Module -Name Posh-ACME.net46 -ListAvailable)) {
+                Install-Module -Name Posh-ACME.net46  -Scope AllUsers -Force
+                Write-Host (get-date -DisplayHint Time) Installing Posh-ACME.net46
+            }
         }
-        if ((Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET").Enabled -eq "false") {
-            Enable-NetFirewallRule -Name "WINRM-HTTP-In-TCP-AZUREVNET"
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTP - enabled rule WINRM-HTTP-In-TCP-AZUREVNET
-        }
-        #winrm over https (for ansible et al)
-        $netFWRulehttps = Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
-        if ($netFWRulehttps) {
-            Set-NetFirewallRule -InputObject $netFWRulehttps -NewDisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - updated rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+        $acmeModule = (Get-Module -Name Posh-ACME* -ListAvailable)
+        if (-not($acmeModule)) {
+            Write-Host (get-date -DisplayHint Time) failed to install Posh-ACME - this is really bad
+            Write-Host (get-date -DisplayHint Time) ....fail, thank you and good bye
         } else {
-            New-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET" -DisplayName "Windows Remote Management (HTTPS-In) - Azurue vnet only" -Description "Inbound rule for Windows Remote Management via WS-Management on HTTPS. [TCP $WinRmPortHTTPS]" -Profile Private, Domain, Public -Direction Inbound -LocalPort $WinRmPortHTTPS -Protocol TCP -Action Allow -RemoteAddress $winRmRemoteAddress
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - added rule WINRM-HTTPS-In-TCP-AZUREVNET for remote address $winRmRemoteAddress
+            write-host (get-date -DisplayHint Time) $acmeModule.Name version $acmeModule.version is installed
         }
-        if ((Get-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET").Enabled -eq "false") {
-            Enable-NetFirewallRule -Name "WINRM-HTTPS-In-TCP-AZUREVNET"
-            Write-Host (get-date -DisplayHint Time) Open WinRM Firewall Port TCP $WinRmPortHTTPS - enabled rule WINRM-HTTPS-In-TCP-AZUREVNET
-        }
-
-        #register LE part as scheduled task (to run in SYSTEM context)
-        #this will fetch a certificate and configure the winrm endpoint
-        Write-Host (get-date -DisplayHint Time) drop C:\AzureData\Manage-PACertificate.ps1 script and register scheduled task for it
-        Set-Content -Path "C:\AzureData\Manage-PACertificate.ps1" -Value $ManagePACertificatePS1 -Force
-        Register-ScheduledTask -xml ($schTask | Out-String) -TaskPath "\AzureData\" -TaskName "Manage-PACertificate.ps1" -Force
-        Write-Host (get-date -DisplayHint Time) start scheduled task \AzureData\Manage-PACertificate.ps1
-        Start-ScheduledTask -TaskPath "\AzureData\" -TaskName "Manage-PACertificate.ps1"
-        Write-Host (get-date -DisplayHint Time) sleeping here to give task time to finish
-        Start-Sleep -Seconds 130
-
-        #Unregister-ScheduledTask -TaskPath "\AzureData\" -TaskName  "Manage-PACertificate.ps1" -Force
-
-        # $hostENVComputerName = $env:computerName
-        # $AlternativeName = @()
-        # if ($dnsSuffix.Length -gt 0) {$AlternativeName += $hostENVComputerName.ToLower() + "." + $dnsSuffix}
-        # if ($mgtDNSSuffix.Length -gt 0) {$AlternativeName += $hostENVComputerName.ToLower() + "." + $mgtDNSSuffix}
-        # $AlternativeName += $hostENVComputerName
-
-
-
-        # Write-Host Generate Self-Signed Certificate for $AlternativeName[0]
-
-        # #create non-exportable self-signed certificate. "Server Authentication" only / validity 10 years
-        # $Cert = New-SelfSignedCertificate -Subject $AlternativeName[0] -DnsName $AlternativeName `
-        #  -NotAfter (Get-Date).AddYears(10) `
-        #  -KeyLength 2048 `
-        #  -KeyAlgorithm "RSA" `
-        #  -Provider "Microsoft Software Key Storage Provider" `
-        #  -KeyExportPolicy "NonExportable"`
-        #  -HashAlgorithm "sha256" `
-        #  -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.1") `
-        #  -CertStoreLocation "cert:\LocalMachine\My" `
-        #  -FriendlyName "Self-Signed WinRM Cert"
-        # #TPM based
-        # #$ -KeyAlgorithm "RSA" -Provider "Microsoft Platform Crypto Provider"
-
-        # $Cert | Out-String
-
-
-
-
-
-        #set primary DNS suffix at the very end
-        Write-Host (get-date -DisplayHint Time) set primary DNS suffix of computer to $dnsSuffix
-        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "Domain" -Value $dnsSuffix
-        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "NV Domain" -Value $dnsSuffix
-
     }
+
+    #register LE part as scheduled task (to run in SYSTEM context)
+    #this will fetch a certificate and configure the winrm endpoint
+    Write-Host (get-date -DisplayHint Time) drop C:\AzureData\Manage-PACertificate.ps1 script and register scheduled task for it
+    Set-Content -Path "C:\AzureData\Manage-PACertificate.ps1" -Value $ManagePACertificatePS1 -Force
+    Register-ScheduledTask -xml ($schTask | Out-String) -TaskPath "\AzureData\" -TaskName "Manage-PACertificate.ps1" -Force
+    Write-Host (get-date -DisplayHint Time) start scheduled task \AzureData\Manage-PACertificate.ps1
+    Start-ScheduledTask -TaskPath "\AzureData\" -TaskName "Manage-PACertificate.ps1"
+    Write-Host (get-date -DisplayHint Time) sleeping here to give task time to finish
+    Start-Sleep -Seconds 130
 }
+
+#set primary DNS suffix at the very end
+Write-Host (get-date -DisplayHint Time) set primary DNS suffix of computer to $dnsSuffix
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "Domain" -Value $dnsSuffix
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "NV Domain" -Value $dnsSuffix
+
 Write-Host (get-date -DisplayHint Time) ...finished
 Stop-Transcript
