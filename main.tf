@@ -9,6 +9,9 @@ locals {
   private_ip_address_allocation = "${var.private_ip_address != "" ? "static" : "dynamic"}"
   #hack as public ip might be null - which can break tf
   public_ip_address_value = "${element(concat(azurerm_public_ip.public-ip.*.ip_address, list("")), 0)}"
+  #see that offer = WindowsServer && sku = *.Core or Core-smalldisk
+  isWindowsServerCore = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" || substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) == "Core-smalldisk") && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+
 }
 
 resource "azurerm_virtual_machine" "virtual-machine" {
@@ -123,8 +126,9 @@ resource "azurerm_role_assignment" "DNSZoneContributor-role_assignment" {
 
 #deploys BdeHdCfg.exe to Windows Server Core boxes as pre-requisite to Azure Disk Encryption
 resource "azurerm_virtual_machine_extension" "BdeHdCfg_script_extension_on_core" {
-  #see that offer = WindowsServer && sku = *.Core
-  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" || substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) == "Core-smalldisk") && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  #see that offer = WindowsServer && sku = *.Core or Core-smalldisk
+  #count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" || substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) == "Core-smalldisk") && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${local.isWindowsServerCore}"
   name                 = "CustomScriptExtension"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
@@ -149,7 +153,8 @@ protected_settings = <<PROTECTED_SETTINGS_JSON
   PROTECTED_SETTINGS_JSON
 }
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" {
-  count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  #count = "${lookup(var.storage_image_reference, "offer", "") == "WindowsServer" && (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) == "Core" || substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) == "Core-smalldisk") && var.bdehdcfg_zip_uri !="" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${local.isWindowsServerCore}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
@@ -175,7 +180,8 @@ resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_core" 
 #on GUI systems, Azure Disk Encryption can be enabled without any prerequisite
 resource "azurerm_virtual_machine_extension" "diskencryption_extension_on_gui" {
   #see that offer != WindowsServer || sku != *.Core
-  count = "${(lookup(var.storage_image_reference, "offer", "") != "WindowsServer" || substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) != "Core") && var.keyvault_URL != "" && var.keyvault_resource_id != ""? 1 : 0}"
+  #count = "${lookup(var.storage_image_reference, "offer", "") != "WindowsServer" || (substr(lookup(var.storage_image_reference, "sku", ""), -4, -1) != "Core" && substr(lookup(var.storage_image_reference, "sku", ""), -14, -1) != "Core-smalldisk") && var.bdehdcfg_zip_uri != "" && var.keyvault_URL != "" && var.keyvault_resource_id != "" ? 1 : 0}"
+  count = "${local.isWindowsServerCore == 0 ? 1 : 0}"
   name                 = "AzureDiskEncryption"
   location             = "${var.location}"
   resource_group_name  = "${var.resource_group_name}"
