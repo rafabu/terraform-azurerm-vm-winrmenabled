@@ -109,7 +109,8 @@ resource "azurerm_dns_a_record" "a-record" {
 }
 
 # Grant the VM identity contributor rights to the current subscription
-resource "azurerm_role_assignment" "role_assignment" {
+resource "azurerm_role_assignment" "DNSZoneContributor-role_assignment" {
+  count = "${var.acme_server == "NONE" ? 0 : 1}"
   scope              = "${data.azurerm_subscription.subscription.id}"
   role_definition_id = "${data.azurerm_subscription.subscription.id}${data.azurerm_builtin_role_definition.role_DNSZoneContributor.id}"
   principal_id       = "${lookup(azurerm_virtual_machine.virtual-machine.identity[0], "principal_id")}"
