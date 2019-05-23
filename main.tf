@@ -105,7 +105,7 @@ resource "azurerm_dns_a_record" "a-record" {
   #hack as public ip might be null - which can break tf
   records             = ["${local.public_ip_address_value}"]
   #the role_assignment won't happen until the VM is restarted
-  depends_on = ["azurerm_role_assignment.role_assignment", "azurerm_virtual_machine.virtual-machine"]
+  depends_on = ["azurerm_role_assignment.DNSZoneContributor-role_assignment", "azurerm_virtual_machine.virtual-machine"]
 }
 
 # Grant the VM identity contributor rights to the current subscription
