@@ -12,7 +12,7 @@ locals {
 }
 
 resource "azurerm_virtual_machine" "virtual-machine" {
- name = "${var.name}-vm"
+ name = "WVM-${var.name}"
  location              = "${var.location}"
  availability_set_id   = "${var.availability_set_id == "" ? "" : var.availability_set_id }"
  resource_group_name   = "${var.resource_group_name}"
@@ -68,7 +68,7 @@ resource "azurerm_virtual_machine" "virtual-machine" {
 }
 
 resource "azurerm_network_interface" "network-interface" {
- name                = "${var.name}-vm-nic"
+ name                = "NIC-${var.name}"
  location              = "${var.location}"
  resource_group_name   = "${var.resource_group_name}"
 
@@ -87,7 +87,7 @@ resource "azurerm_network_interface" "network-interface" {
 resource "azurerm_public_ip" "public-ip" {
   #if condition on
   count = "${var.enable_public_ip == 1 ? 1 : 0}"
-  name                         = "${var.name}-publicip"
+  name                         = "PIP-${var.name}"
   resource_group_name  = "${var.resource_group_name}"
   location                     = "${var.location}"
   #static or dynamic
