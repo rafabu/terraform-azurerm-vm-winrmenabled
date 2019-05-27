@@ -74,6 +74,7 @@ resource "azurerm_network_interface" "network-interface" {
  name                = "NIC-${var.name}"
  location              = "${var.location}"
  resource_group_name   = "${var.resource_group_name}"
+ dns_servers           = ["${var.vm_dns_servers}"]
 
  ip_configuration {
    name                          = "network-interface_ip_configuration"

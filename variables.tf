@@ -65,6 +65,10 @@ variable "storage_os_disk" {
 
 variable"subnet_id" {
 }
+variable "vm_dns_servers" {
+    type= "list"
+    default = []
+}
 variable "private_ip_address" {
     default = ""
     description = "optionally assign a static private IP addess. Use a valid IPv4 address or calculate like in \"${cidrhost(azurerm_subnet.subnet.address_prefix, 5)}\""
