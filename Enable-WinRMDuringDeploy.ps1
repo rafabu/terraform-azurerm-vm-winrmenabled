@@ -125,7 +125,7 @@ if ($paCertificates.count -eq 0) {
 }
 
 if ($paCertificates.Count -eq 1) {
-    #if newew by isn't reached yet, this will output a warning and not do anything
+    #if rewew by isn't reached yet, this will output a warning and not do anything
     #see if the certificate is actually still present
     $installedPACertificates = @(Get-ChildItem Cert:\LocalMachine\My | where {$_.Subject -eq "CN=$domain" -and $_.Issuer -imatch $leIssuer -and $_.Thumbprint -eq $paCertificates[0].Thumbprint})
     if ($installedPACertificates.Count -eq 0) {
